@@ -1,0 +1,71 @@
+{
+  "commandServiceUrl": "http://localhost:8080",
+  "queryServiceUrl": "http://localhost:8081",
+  "projectName": "E-Commerce CQRS Analytics System",
+  "description": "A high-performance e-commerce analytics system using CQRS pattern and event-driven architecture",
+  "architecture": {
+    "pattern": "CQRS (Command Query Responsibility Segregation)",
+    "style": "Event-Driven Architecture",
+    "eventPublishing": "Outbox Pattern with Polling Publisher",
+    "messageDelivery": "At-Least-Once (with Idempotency)",
+    "consistency": "Eventual Consistency"
+  },
+  "services": {
+    "commandService": {
+      "port": 8080,
+      "healthEndpoint": "/health",
+      "baseUrl": "http://localhost:8080"
+    },
+    "queryService": {
+      "port": 8081,
+      "healthEndpoint": "/health",
+      "baseUrl": "http://localhost:8081"
+    },
+    "consumerService": {
+      "internal": true,
+      "description": "Event processing service"
+    }
+  },
+  "databases": {
+    "write": {
+      "type": "PostgreSQL",
+      "host": "db",
+      "port": 5432,
+      "name": "write_db",
+      "tables": ["products", "orders", "order_items", "outbox"]
+    },
+    "read": {
+      "type": "PostgreSQL",
+      "host": "read_db",
+      "port": 5433,
+      "name": "read_db",
+      "views": ["product_sales_view", "category_metrics_view", "customer_ltv_view", "hourly_sales_view"]
+    }
+  },
+  "messageBroker": {
+    "type": "RabbitMQ",
+    "host": "broker",
+    "port": 5672,
+    "queues": ["order-events", "product-events"]
+  },
+  "endpoints": {
+    "command": {
+      "createProduct": "POST /api/products",
+      "createOrder": "POST /api/orders"
+    },
+    "query": {
+      "productSales": "GET /api/analytics/products/{productId}/sales",
+      "categoryRevenue": "GET /api/analytics/categories/{category}/revenue",
+      "customerLifetimeValue": "GET /api/analytics/customers/{customerId}/lifetime-value",
+      "syncStatus": "GET /api/analytics/sync-status"
+    }
+  },
+  "setupInstructions": {
+    "prerequisites": [
+      "Docker and Docker Compose installed",
+      "Node.js 20 or higher (optional, if running locally)"
+    ],
+    "startup": "docker-compose up",
+    "expectedStartupTime": "60 seconds"
+  }
+}
