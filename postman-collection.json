@@ -1,0 +1,306 @@
+{
+  "info": {
+    "name": "E-Commerce CQRS Analytics API",
+    "description": "Complete API testing suite for CQRS-based e-commerce analytics system",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Command Service (Write)",
+      "item": [
+        {
+          "name": "1. Create Product - Electronics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Laptop\",\n  \"category\": \"Electronics\",\n  \"price\": 50000,\n  \"stock\": 10\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/products",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "products"]
+            }
+          },
+          "response": [],
+          "description": "Creates a new product in the write database. Returns productId.\n\n**Expected Response (201 Created):**\n```json\n{\n  \"productId\": 1\n}\n```"
+        },
+        {
+          "name": "2. Create Product - Home & Kitchen",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Coffee Maker\",\n  \"category\": \"Home & Kitchen\",\n  \"price\": 5000,\n  \"stock\": 50\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/products",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "products"]
+            }
+          },
+          "response": [],
+          "description": "Creates another product in a different category.\n\n**Expected Response (201 Created):**\n```json\n{\n  \"productId\": 2\n}\n```"
+        },
+        {
+          "name": "3. Create Order - Customer 5",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": 5,\n  \"items\": [\n    {\n      \"productId\": 1,\n      \"quantity\": 2,\n      \"price\": 50000\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/orders",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "orders"]
+            }
+          },
+          "response": [],
+          "description": "Creates an order with products. The event is written to outbox table atomically.\n\n**Changes Made:**\n- writes to orders table\n- writes to order_items table\n- writes to outbox table (OrderCreated event)\n\n**Expected Response (201 Created):**\n```json\n{\n  \"orderId\": 1\n}\n```"
+        },
+        {
+          "name": "4. Create Order - Customer 10",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": 10,\n  \"items\": [\n    {\n      \"productId\": 2,\n      \"quantity\": 3,\n      \"price\": 5000\n    },\n    {\n      \"productId\": 1,\n      \"quantity\": 1,\n      \"price\": 50000\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/orders",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "orders"]
+            }
+          },
+          "response": [],
+          "description": "Creates an order with multiple items. Demonstrates cart-like behavior.\n\n**Expected Response (201 Created):**\n```json\n{\n  \"orderId\": 2\n}\n```"
+        },
+        {
+          "name": "5. Create Order - Customer 5 (Second Order)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": 5,\n  \"items\": [\n    {\n      \"productId\": 2,\n      \"quantity\": 1,\n      \"price\": 5000\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/orders",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "orders"]
+            }
+          },
+          "response": [],
+          "description": "Second order for Customer 5 to test LTV aggregation.\n\n**Expected Response (201 Created):**\n```json\n{\n  \"orderId\": 3\n}\n```"
+        }
+      ],
+      "description": "Write API endpoints - Command Service. All operations are synchronous and return immediately after database commit."
+    },
+    {
+      "name": "Query Service (Read) - Analytics",
+      "item": [
+        {
+          "name": "1. Product Sales - Product ID 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8081/api/analytics/products/1/sales",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8081",
+              "path": ["api", "analytics", "products", "1", "sales"]
+            }
+          },
+          "response": [],
+          "description": "Retrieves aggregated sales data for a product from the materialized view.\n\n**Note:** Wait 10+ seconds after creating orders for data to appear (eventual consistency).\n\n**Expected Response (200 OK):**\n```json\n{\n  \"productId\": 1,\n  \"totalQuantitySold\": 3,\n  \"totalRevenue\": 150000,\n  \"orderCount\": 2\n}\n```"
+        },
+        {
+          "name": "2. Product Sales - Product ID 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8081/api/analytics/products/2/sales",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8081",
+              "path": ["api", "analytics", "products", "2", "sales"]
+            }
+          },
+          "response": [],
+          "description": "Retrieves sales data for Product 2.\n\n**Expected Response (200 OK):**\n```json\n{\n  \"productId\": 2,\n  \"totalQuantitySold\": 4,\n  \"totalRevenue\": 20000,\n  \"orderCount\": 2\n}\n```"
+        },
+        {
+          "name": "3. Category Revenue - Electronics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8081/api/analytics/categories/Electronics/revenue",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8081",
+              "path": ["api", "analytics", "categories", "Electronics", "revenue"]
+            }
+          },
+          "response": [],
+          "description": "Retrieves aggregated revenue for a product category.\n\n**Expected Response (200 OK):**\n```json\n{\n  \"category\": \"Electronics\",\n  \"totalRevenue\": 170000,\n  \"totalOrders\": 3\n}\n```"
+        },
+        {
+          "name": "4. Category Revenue - Home & Kitchen",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8081/api/analytics/categories/Home%20%26%20Kitchen/revenue",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8081",
+              "path": ["api", "analytics", "categories", "Home & Kitchen", "revenue"]
+            }
+          },
+          "response": [],
+          "description": "Retrieves revenue for Home & Kitchen category.\n\n**Expected Response (200 OK):**\n```json\n{\n  \"category\": \"Home & Kitchen\",\n  \"totalRevenue\": 20000,\n  \"totalOrders\": 2\n}\n```"
+        },
+        {
+          "name": "5. Customer LTV - Customer 5",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8081/api/analytics/customers/5/lifetime-value",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8081",
+              "path": ["api", "analytics", "customers", "5", "lifetime-value"]
+            }
+          },
+          "response": [],
+          "description": "Retrieves lifetime value metrics for a customer.\n\n**Expected Response (200 OK):**\n```json\n{\n  \"customerId\": 5,\n  \"totalSpent\": 105000,\n  \"orderCount\": 2,\n  \"lastOrderDate\": \"2026-02-19T14:00:30.123Z\"\n}\n```"
+        },
+        {
+          "name": "6. Customer LTV - Customer 10",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8081/api/analytics/customers/10/lifetime-value",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8081",
+              "path": ["api", "analytics", "customers", "10", "lifetime-value"]
+            }
+          },
+          "response": [],
+          "description": "Retrieves lifetime value for Customer 10.\n\n**Expected Response (200 OK):**\n```json\n{\n  \"customerId\": 10,\n  \"totalSpent\": 65000,\n  \"orderCount\": 1,\n  \"lastOrderDate\": \"2026-02-19T14:00:25.456Z\"\n}\n```"
+        },
+        {
+          "name": "7. Sync Status - Eventual Consistency Lag",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8081/api/analytics/sync-status",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8081",
+              "path": ["api", "analytics", "sync-status"]
+            }
+          },
+          "response": [],
+          "description": "Reports the lag between write model and read model. Critical for monitoring eventual consistency.\n\n**lagSeconds:** Calculated as (now - lastProcessedEventTimestamp). If close to 0, system is caught up.\n\n**Expected Response (200 OK):**\n```json\n{\n  \"lastProcessedEventTimestamp\": \"2026-02-19T14:00:30.456Z\",\n  \"lagSeconds\": 5\n}\n```\n\n**Interpretation:**\n- lagSeconds = 0-5: System is fully caught up (ideal)\n- lagSeconds = 5-30: Normal processing lag\n- lagSeconds > 60: Consumer may be slow or experiencing issues"
+        }
+      ],
+      "description": "Read API endpoints - Query Service. All operations read from materialized views in the read database. Responses are extremely fast (denormalized data, no joins)."
+    },
+    {
+      "name": "Health Checks",
+      "item": [
+        {
+          "name": "Command Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["health"]
+            }
+          },
+          "response": [],
+          "description": "Command Service health check. Returns 200 with {\"status\":\"ok\"} if service is running."
+        },
+        {
+          "name": "Query Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8081/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8081",
+              "path": ["health"]
+            }
+          },
+          "response": [],
+          "description": "Query Service health check. Returns 200 with {\"status\":\"ok\"} if service is running."
+        }
+      ],
+      "description": "Health check endpoints to verify services are running."
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url_command",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "base_url_query",
+      "value": "http://localhost:8081"
+    }
+  ]
+}
